@@ -1,0 +1,75 @@
+
+===== window=32 rep=1 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135520, final max|dT| = 9.985e-07 K, converged = 1
+gpu: wall 736.388 ms, HIP event 736.367 ms, launches 135520 (5.434 us/launch including copies), residual readbacks 4235
+gpu: P_in = 120.000000 W, Q_top = 119.999662 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=32 rep=2 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135520, final max|dT| = 9.985e-07 K, converged = 1
+gpu: wall 627.935 ms, HIP event 627.920 ms, launches 135520 (4.633 us/launch including copies), residual readbacks 4235
+gpu: P_in = 120.000000 W, Q_top = 119.999662 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=32 rep=3 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135520, final max|dT| = 9.985e-07 K, converged = 1
+gpu: wall 667.388 ms, HIP event 667.339 ms, launches 135520 (4.924 us/launch including copies), residual readbacks 4235
+gpu: P_in = 120.000000 W, Q_top = 119.999662 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=64 rep=1 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 1006.155 ms, HIP event 1005.996 ms, launches 135552 (7.421 us/launch including copies), residual readbacks 2118
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=64 rep=2 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 1352.049 ms, HIP event 1351.931 ms, launches 135552 (9.974 us/launch including copies), residual readbacks 2118
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=64 rep=3 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 794.739 ms, HIP event 794.684 ms, launches 135552 (5.863 us/launch including copies), residual readbacks 2118
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=128 rep=1 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 561.360 ms, HIP event 561.327 ms, launches 135552 (4.141 us/launch including copies), residual readbacks 1059
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=128 rep=2 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 543.377 ms, HIP event 543.357 ms, launches 135552 (4.008 us/launch including copies), residual readbacks 1059
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+
+===== window=128 rep=3 =====
+chiplet-thermal GPU solver (HIP API, fp64, Jacobi relaunch batches)
+grid 600 x 36, h = 0.0500 mm, T_amb = 318.0 K, k_TIM = 0.086000 W/(mm*K)
+gpu: iterations 135552, final max|dT| = 9.970e-07 K, converged = 1
+gpu: wall 529.735 ms, HIP event 529.674 ms, launches 135552 (3.908 us/launch including copies), residual readbacks 1059
+gpu: P_in = 120.000000 W, Q_top = 119.999663 W, imbalance = -0.0003 %
+gpu: T_max = 358.246 K at (x = 4.525 mm, z = 1.125 mm); T_max_compute = 350.160 K; T_max_hbm = 358.246 K
+window 32: iterations=[135520, 135520, 135520], residual readbacks=[4235, 4235, 4235], wall median=667.388 ms [627.935,736.388], device median=667.339 ms [627.920,736.367]
+window 64: iterations=[135552, 135552, 135552], residual readbacks=[2118, 2118, 2118], wall median=1006.155 ms [794.739,1352.049], device median=1005.996 ms [794.684,1351.931]
+window 128: iterations=[135552, 135552, 135552], residual readbacks=[1059, 1059, 1059], wall median=543.377 ms [529.735,561.360], device median=543.357 ms [529.674,561.327]
