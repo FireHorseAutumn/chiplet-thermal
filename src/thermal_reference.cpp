@@ -18,6 +18,7 @@
 int main(int argc, char** argv) {
     thermal::Config c;
     std::string out;
+    bool uniform_1d = false;
     for (int i = 1; i < argc; ++i) {
         auto need = [&](const char* name) -> const char* {
             if (i + 1 >= argc) {
@@ -37,11 +38,19 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--compute-x1")) c.compute_x1 = atof(need("--compute-x1"));
         else if (!strcmp(argv[i], "--hbm-x0")) c.hbm_x0 = atof(need("--hbm-x0"));
         else if (!strcmp(argv[i], "--hbm-x1")) c.hbm_x1 = atof(need("--hbm-x1"));
-        else if (!strcmp(argv[i], "--uniform-1d")) {
-            c.compute_x0 = 0.0; c.compute_x1 = c.W; c.P_hbm = 0.0;
-        }
+        else if (!strcmp(argv[i], "--uniform-1d")) uniform_1d = true;
         else if (!strcmp(argv[i], "--out")) out = need("--out");
         else { fprintf(stderr, "unknown arg %s\n", argv[i]); return 2; }
+    }
+
+    // Apply after parsing so --width in any order still spans the die
+    // across the full domain.
+    if (uniform_1d) {
+        c.compute_x0 = 0.0; c.compute_x1 = c.W; c.P_hbm = 0.0;
+    }
+    if (const char* bad = thermal::validate_config(c)) {
+        fprintf(stderr, "invalid configuration: %s\n", bad);
+        return 2;
     }
 
     thermal::Grid g = thermal::make_grid(c);

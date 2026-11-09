@@ -51,4 +51,5 @@ add_test(
   NAME thermal
   COMMAND test_thermal $<TARGET_FILE:thermal_batched>
           ${CMAKE_CURRENT_SOURCE_DIR}/data/tim_indium_100W/host_field.csv
+          $<TARGET_FILE:thermal_reference>
 )

@@ -7,7 +7,7 @@
 // CLI: (default) power sweep -> CSV; --solve P for a single solve.
 //   --p-min W --p-max W --n-points N --out sweep.csv
 //   --solve W --field-out field.csv [--uniform-1d]
-//   --power-hbm W --k-tim W/(mm*K) --h MM --tol K --max-iter N
+//   --power-hbm W --k-tim W/(mm*K) --h MM --tol K --max-iter N --width MM
 //   --window N (sweeps between residual readbacks, default 32)
 
 #include "hip_shim.h"
@@ -99,8 +99,12 @@ struct DevSolve {
         thermal::SolveReport r;
         long checks = 0;
         for (long it = 0; it < max_iter;) {
+            // Shorten the final batch so the sweep count never exceeds
+            // max_iter (window may not divide it).
+            const long batch =
+                (max_iter - it < window) ? (max_iter - it) : window;
             HIP_CHECK(hipMemset(res, 0, sizeof(unsigned long long)));
-            for (int w = 0; w < window - 1; ++w) {
+            for (long w = 0; w < batch - 1; ++w) {
                 jacobi_sweep<false><<<nblocks, NT>>>(cur, nxt, aE, aW, aN, aS,
                                                      src, nx, nz, res);
                 HIP_CHECK(hipGetLastError());
@@ -110,7 +114,7 @@ struct DevSolve {
                                                 nx, nz, res);
             HIP_CHECK(hipGetLastError());
             double* t = cur; cur = nxt; nxt = t;
-            it += window;
+            it += batch;
             ++checks;
             unsigned long long h_res = 0;
             HIP_CHECK(hipMemcpy(&h_res, res, sizeof(unsigned long long),
@@ -166,6 +170,7 @@ int main(int argc, char** argv) {
     double p_min = 25.0, p_max = 150.0, solve_power = -1.0;
     int n_points = 8, window = 32;
     std::string out = "data/sweep.csv", field_out;
+    bool uniform_1d = false, have_solve = false;
     for (int i = 1; i < argc; ++i) {
         auto need = [&](const char* name) -> const char* {
             if (i + 1 >= argc) {
@@ -174,15 +179,17 @@ int main(int argc, char** argv) {
             }
             return argv[++i];
         };
-        if (!strcmp(argv[i], "--solve")) solve_power = atof(need("--solve"));
-        else if (!strcmp(argv[i], "--field-out")) field_out = need("--field-out");
-        else if (!strcmp(argv[i], "--uniform-1d")) {
-            c.compute_x0 = 0.0; c.compute_x1 = c.W; c.P_hbm = 0.0;
+        if (!strcmp(argv[i], "--solve")) {
+            solve_power = atof(need("--solve"));
+            have_solve = true;
         }
+        else if (!strcmp(argv[i], "--field-out")) field_out = need("--field-out");
+        else if (!strcmp(argv[i], "--uniform-1d")) uniform_1d = true;
         else if (!strcmp(argv[i], "--p-min")) p_min = atof(need("--p-min"));
         else if (!strcmp(argv[i], "--p-max")) p_max = atof(need("--p-max"));
         else if (!strcmp(argv[i], "--n-points")) n_points = atoi(need("--n-points"));
         else if (!strcmp(argv[i], "--out")) out = need("--out");
+        else if (!strcmp(argv[i], "--width")) c.W = atof(need("--width"));
         else if (!strcmp(argv[i], "--power-hbm")) c.P_hbm = atof(need("--power-hbm"));
         else if (!strcmp(argv[i], "--k-tim")) c.k_tim = atof(need("--k-tim"));
         else if (!strcmp(argv[i], "--h")) c.h = atof(need("--h"));
@@ -191,8 +198,31 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--window")) window = atoi(need("--window"));
         else { fprintf(stderr, "unknown arg %s\n", argv[i]); return 2; }
     }
+    // Apply after parsing so --width in any order still spans the die
+    // across the full domain.
+    if (uniform_1d) {
+        c.compute_x0 = 0.0; c.compute_x1 = c.W; c.P_hbm = 0.0;
+    }
     if (window <= 0) {
         fprintf(stderr, "--window must be positive\n");
+        return 2;
+    }
+    if (have_solve && !(solve_power >= 0.0)) {
+        fprintf(stderr, "--solve power must be non-negative\n");
+        return 2;
+    }
+    if (!have_solve) {
+        if (n_points < 2) {
+            fprintf(stderr, "--n-points must be at least 2\n");
+            return 2;
+        }
+        if (!(p_min >= 0.0) || !(p_max >= 0.0)) {
+            fprintf(stderr, "--p-min/--p-max must be non-negative\n");
+            return 2;
+        }
+    }
+    if (const char* bad = thermal::validate_config(c)) {
+        fprintf(stderr, "invalid configuration: %s\n", bad);
         return 2;
     }
 
@@ -204,7 +234,7 @@ int main(int argc, char** argv) {
     DevSolve dev;
     dev.alloc(g);
 
-    if (solve_power >= 0.0) { // single solve
+    if (have_solve) { // single solve
         c.P_compute = solve_power;
         g = thermal::make_grid(c);
         std::vector<double> T(g.nx * g.nz, c.T_amb);

@@ -4,7 +4,9 @@
 //   (c) Default-case hot-spot ordering.
 //   (d) Convergence at every GPU power-sweep point.
 //   (e-g) Nondefault-TIM analytic, energy, and preserved-host field checks.
-// argv[1] is the thermal_batched path; argv[2] is the preserved indium host CSV.
+//   (j) --uniform-1d applies after parsing, independent of argument order.
+// argv[1] is the thermal_batched path; argv[2] is the preserved indium host CSV;
+// argv[3] is the thermal_reference path.
 
 #include "thermal_core.h"
 
@@ -50,13 +52,15 @@ static double max_abs_diff(const std::vector<double>& a,
 }
 
 int main(int argc, char** argv) {
-    if (argc < 3) {
+    if (argc < 4) {
         fprintf(stderr, "usage: test_thermal <path-to-thermal_batched> "
-                        "<preserved-indium-host-field>\n");
+                        "<preserved-indium-host-field> "
+                        "<path-to-thermal_reference>\n");
         return 2;
     }
     const std::string gpu = argv[1];
     const std::string indium_host_path = argv[2];
+    const std::string host = argv[3];
     char buf[1024];
 
     // (a) 1D analytic limit: compute die spans full width, HBM off.
@@ -208,6 +212,74 @@ int main(int argc, char** argv) {
              "max|dT| vs preserved indium host = %.3e K, tol = 1e-4 K", d_tim);
     check(ok_tim && d_tim < 1e-4,
           "(g) GPU reproduces preserved indium host field", buf);
+
+    // (j) --uniform-1d must apply after argument parsing, independent of
+    // order. Before the fix, "--uniform-1d --width 20" left the die span at
+    // the default 30 mm, silently cutting integrated power to 66.7 W.
+    // W = 20 mm, h = 0.1 mm keeps this solve small.
+    const int jnx = 200, jnz = 18;
+    const double analytic20 = thermal::analytic_1d_Tmax(100.0 / 20.0, 318.0);
+    std::string fj = "test_field_order.csv";
+    snprintf(buf, sizeof buf,
+             "\"%s\" --uniform-1d --width 20 --h 0.1 --power-compute 100 "
+             "--out %s",
+             host.c_str(), fj.c_str());
+    rc = system(buf);
+    bool okj = (rc == 0) && read_field_csv(fj.c_str(), jnx, jnz, Tg);
+    double tj = 0.0;
+    for (double v : Tg) tj = fmax(tj, v);
+    snprintf(buf, sizeof buf,
+             "host T_max = %.4f K, analytic(W=20) = %.4f K, err = %.4f %%",
+             tj, analytic20, 100.0 * fabs(tj - analytic20) / (analytic20 - 318.0));
+    check(okj && fabs(tj - analytic20) / (analytic20 - 318.0) < 0.01,
+          "(j) --uniform-1d honors later --width (host)", buf);
+    snprintf(buf, sizeof buf,
+             "\"%s\" --solve 100 --uniform-1d --width 20 --h 0.1 "
+             "--field-out %s",
+             gpu.c_str(), fj.c_str());
+    rc = system(buf);
+    okj = (rc == 0) && read_field_csv(fj.c_str(), jnx, jnz, Tg);
+    tj = 0.0;
+    for (double v : Tg) tj = fmax(tj, v);
+    snprintf(buf, sizeof buf,
+             "gpu T_max = %.4f K, analytic(W=20) = %.4f K, err = %.4f %%",
+             tj, analytic20, 100.0 * fabs(tj - analytic20) / (analytic20 - 318.0));
+    check(okj && fabs(tj - analytic20) / (analytic20 - 318.0) < 0.01,
+          "(j) --uniform-1d honors later --width (GPU)", buf);
+
+    // (h) validate_config accepts the defaults and rejects configurations
+    // that would silently compute the wrong problem.
+    int h_ok = (thermal::validate_config(c2) == nullptr);
+    thermal::Config bad;
+    bad = c2; bad.h = 0.07;   // does not divide 0.1 mm layers
+    h_ok &= (thermal::validate_config(bad) != nullptr);
+    bad = c2; bad.k_tim = 0.0;
+    h_ok &= (thermal::validate_config(bad) != nullptr);
+    bad = c2; bad.compute_x1 = 31.0; // beyond W
+    h_ok &= (thermal::validate_config(bad) != nullptr);
+    bad = c2; bad.hbm_x0 = bad.hbm_x1;
+    h_ok &= (thermal::validate_config(bad) != nullptr);
+    bad = c2; bad.tol = 0.0;
+    h_ok &= (thermal::validate_config(bad) != nullptr);
+    check(h_ok, "(h) config validation accepts defaults, rejects bad "
+                "h/k_tim/footprint/tol", "see validate_config");
+
+    // (i)+(k) CLI rejection, exit status 2 (system() encodes it as 2 << 8).
+    // These must fail before any grid build or device work.
+    snprintf(buf, sizeof buf, "\"%s\" --h 0.07", host.c_str());
+    check(system(buf) == 2 * 256,
+          "(i) host rejects a non-divisor pitch with exit 2", buf);
+    snprintf(buf, sizeof buf, "\"%s\" --k-tim 0 --max-iter 64", gpu.c_str());
+    check(system(buf) == 2 * 256,
+          "(i) GPU rejects zero TIM conductivity with exit 2", buf);
+    snprintf(buf, sizeof buf, "\"%s\" --solve -5 --max-iter 64", gpu.c_str());
+    check(system(buf) == 2 * 256,
+          "(k) GPU rejects a negative --solve power with exit 2", buf);
+    snprintf(buf, sizeof buf, "\"%s\" --n-points 1 --max-iter 64 "
+             "--out test_np1.csv", gpu.c_str());
+    check(system(buf) == 2 * 256,
+          "(k) GPU rejects --n-points 1 with exit 2 (was: NaN power row)",
+          buf);
 
     if (g_failures) {
         printf("TESTS FAILED: %d check(s) — see FAIL lines above\n", g_failures);

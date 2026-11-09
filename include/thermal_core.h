@@ -37,6 +37,37 @@ struct Config {
 // Region tags for die-band cells (region extrema in reports/plots).
 inline constexpr int REGION_NONE = 0, REGION_COMPUTE = 1, REGION_HBM = 2;
 
+// Reject configurations that would silently compute the wrong problem:
+// nonpositive or NaN parameters, footprints outside the domain, and grid
+// pitches that do not divide the width, a layer thickness, or a footprint
+// edge exactly (cell-center classification is exact on divisor pitches
+// only). Returns nullptr when valid, else a static message.
+inline const char* validate_config(const Config& c) {
+    if (!(c.W > 0.0)) return "width must be positive";
+    if (!(c.h > 0.0)) return "grid pitch h must be positive";
+    if (!(c.T_amb > 0.0)) return "T_amb must be positive (kelvin)";
+    if (!(c.k_tim > 0.0)) return "k_tim must be positive";
+    if (!(c.tol > 0.0)) return "tol must be positive";
+    if (!(c.max_iter >= 1)) return "max_iter must be at least 1";
+    if (!(c.P_compute >= 0.0) || !(c.P_hbm >= 0.0))
+        return "powers must be non-negative";
+    if (!(c.hbm_x0 >= 0.0 && c.hbm_x1 > c.hbm_x0 && c.hbm_x1 <= c.W))
+        return "HBM footprint must satisfy 0 <= x0 < x1 <= width";
+    if (!(c.compute_x0 >= 0.0 && c.compute_x1 > c.compute_x0 &&
+          c.compute_x1 <= c.W))
+        return "compute footprint must satisfy 0 <= x0 < x1 <= width";
+    const double spans[] = {c.W,         T_SUB,       T_INT,
+                            T_DIE,       T_TIM,       c.hbm_x0,
+                            c.hbm_x1,    c.compute_x0, c.compute_x1};
+    for (double L : spans) {
+        const double r = L / c.h;
+        if (!(fabs(r - llround(r)) <= 1e-6 * (fabs(r) + 1e-12)))
+            return "h must divide the width, every layer thickness, and the "
+                   "die footprint edges";
+    }
+    return nullptr;
+}
+
 // Cell-centered fields, nx x nz cells, index c = j*nx + i, cell center at
 // x = (i+0.5)*h, z = (j+0.5)*h. Jacobi update in precomputed form:
 //   T_new[c] = aE*T[c+1] + aW*T[c-1] + aN*T[c+nx] + aS*T[c-nx] + src[c]
